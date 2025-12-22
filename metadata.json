@@ -1,0 +1,7 @@
+{
+  "name": "Talking Grandpa",
+  "description": "A grumpy but lovable interactive grandpa who responds to your voice in real-time, just like Talking Tom but with a lot more wisdom (and complaints).",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
