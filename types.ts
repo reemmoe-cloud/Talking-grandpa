@@ -6,7 +6,8 @@ export enum GameState {
   ERROR = 'ERROR'
 }
 
-export type Location = 'livingRoom' | 'kitchen' | 'outside';
+export type Location = 'livingRoom' | 'kitchen' | 'outside' | 'bedroom';
+export type Theme = 'normal' | 'christmas' | 'halloween' | 'v0';
 
 export interface GrandpaState {
   isBlinking: boolean;
@@ -14,8 +15,11 @@ export interface GrandpaState {
   isPoked: boolean;
   currentMood: 'happy' | 'grumpy' | 'sleepy' | 'surprised';
   location: Location;
+  theme: Theme;
   isPlayingWithHorse?: boolean;
   isPhoneRinging?: boolean;
   isHandRaised?: boolean;
   isPhoneActive?: boolean;
+  isLanternOn?: boolean;
+  isSleeping?: boolean;
 }

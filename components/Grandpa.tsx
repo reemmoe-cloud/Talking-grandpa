@@ -5,10 +5,11 @@ import { GrandpaState } from '../types';
 interface GrandpaProps {
   state: GrandpaState;
   onPoke: () => void;
+  onToggleLantern?: () => void;
   voice: string;
 }
 
-const Grandpa: React.FC<GrandpaProps> = ({ state, onPoke, voice }) => {
+const Grandpa: React.FC<GrandpaProps> = ({ state, onPoke, onToggleLantern, voice }) => {
   const [wiggle, setWiggle] = useState(0);
   const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -23,7 +24,7 @@ const Grandpa: React.FC<GrandpaProps> = ({ state, onPoke, voice }) => {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
+      if (!containerRef.current || state.isSleeping) return;
 
       const rect = containerRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
@@ -47,11 +48,17 @@ const Grandpa: React.FC<GrandpaProps> = ({ state, onPoke, voice }) => {
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  }, [state.isSleeping]);
 
   const isOutside = state.location === 'outside';
   const isKitchen = state.location === 'kitchen';
+  const isBedroom = state.location === 'bedroom';
   const isLivingRoom = state.location === 'livingRoom';
+  const isV0 = state.theme === 'v0';
+
+  // Theme colors
+  const skinColor = state.theme === 'halloween' ? '#bdc3c7' : '#FFCCBC';
+  const hairColor = state.theme === 'halloween' ? '#7f8c8d' : '#EEEEEE';
 
   return (
     <div 
@@ -69,20 +76,19 @@ const Grandpa: React.FC<GrandpaProps> = ({ state, onPoke, voice }) => {
           animation: breathing 4s ease-in-out infinite;
           transform-origin: center bottom;
         }
-        @keyframes horse-bounce {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(5px, -10px); }
+        @keyframes glow {
+          0%, 100% { filter: drop-shadow(0 0 5px #ffd700); }
+          50% { filter: drop-shadow(0 0 20px #ffd700); }
         }
-        .animate-horse {
-          animation: horse-bounce 0.8s ease-in-out infinite;
+        .animate-glow {
+          animation: glow 2s infinite;
         }
-        @keyframes steam {
-          0% { transform: translateY(0) opacity(0); }
-          50% { opacity: 0.5; }
-          100% { transform: translateY(-10px) opacity(0); }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
         }
-        .steam-line {
-          animation: steam 2s infinite ease-out;
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
         }
         @keyframes ring {
           0%, 100% { transform: rotate(0); }
@@ -102,164 +108,149 @@ const Grandpa: React.FC<GrandpaProps> = ({ state, onPoke, voice }) => {
         {/* Background Logic */}
         {isOutside ? (
           <>
-            <rect x="0" y="0" width="200" height="240" fill="#87CEEB" />
-            <rect x="0" y="180" width="200" height="60" fill="#4CAF50" />
-            <circle cx="170" cy="30" r="15" fill="#FFD700" />
-            <circle cx="40" cy="40" r="10" fill="white" opacity="0.8" />
-            <circle cx="55" cy="45" r="12" fill="white" opacity="0.8" />
-            
-            <g transform="translate(140, 160) scale(0.6)" className={state.isPlayingWithHorse ? 'animate-horse' : ''}>
-                <path d="M10 40 L50 40 L60 10 L80 15 L70 45 L80 50 L80 80 L65 80 L65 55 L55 55 L55 80 L40 80 L40 55 L30 55 L30 80 L15 80 L15 50 Z" fill="#795548" />
-                <path d="M60 10 Q70 0 80 15" fill="#5D4037" />
-                <circle cx="72" cy="18" r="2" fill="black" />
-                {state.isPlayingWithHorse && (
-                    <text x="0" y="-10" fontSize="20">🍎</text>
-                )}
-            </g>
+            <rect x="0" y="0" width="200" height="240" fill={state.theme === 'halloween' ? '#1a252f' : '#87CEEB'} />
+            <rect x="0" y="180" width="200" height="60" fill={state.theme === 'halloween' ? '#2c3e50' : '#4CAF50'} />
+            {state.theme === 'christmas' && <text x="10" y="40" fontSize="30">❄️</text>}
+            {state.theme === 'halloween' && <circle cx="170" cy="30" r="15" fill="#ecf0f1" opacity="0.8" />}
+            {!isBedroom && state.theme === 'normal' && <circle cx="170" cy="30" r="15" fill="#FFD700" />}
           </>
         ) : isKitchen ? (
           <>
-            <rect x="0" y="0" width="200" height="240" fill="#FFF9C4" />
+            <rect x="0" y="0" width="200" height="240" fill={state.theme === 'halloween' ? '#3e2723' : '#FFF9C4'} />
             <rect x="0" y="190" width="200" height="50" fill="#E0E0E0" />
             <rect x="0" y="170" width="200" height="30" fill="#8D6E63" />
-            
-            <g transform="translate(20, 155)">
-                <path d="M0 15 Q15 0 30 15 Z" fill="#FFB74D" />
-                <rect x="0" y="15" width="30" height="5" fill="#F57C00" />
-                <path d="M5 5 Q7 -5 9 5" fill="none" stroke="white" strokeWidth="1" opacity="0.6" className="steam-line" style={{animationDelay: '0s'}} />
-                <path d="M15 5 Q17 -5 19 5" fill="none" stroke="white" strokeWidth="1" opacity="0.6" className="steam-line" style={{animationDelay: '0.5s'}} />
-                <path d="M25 5 Q27 -5 29 5" fill="none" stroke="white" strokeWidth="1" opacity="0.6" className="steam-line" style={{animationDelay: '1s'}} />
+            {state.theme === 'christmas' && <text x="160" y="165" fontSize="20">🍬</text>}
+          </>
+        ) : isBedroom ? (
+          <>
+            <rect x="0" y="0" width="200" height="240" fill={state.isLanternOn ? '#5D4037' : '#0a0a0a'} />
+            {/* Bed */}
+            <g transform="translate(20, 160)">
+              <rect x="0" y="0" width="160" height="40" fill="#3E2723" />
+              <rect x="5" y="-15" width="40" height="15" rx="5" fill="#E0E0E0" />
+              <rect x="5" y="0" width="150" height="20" fill="#1A237E" opacity="0.8" />
             </g>
-            
-            <g transform="translate(140, 150)">
-                <path d="M0 20 Q20 40 40 20 Z" fill="#E0E0E0" />
-                <circle cx="10" cy="15" r="7" fill="#F44336" />
-                <circle cx="20" cy="12" r="7" fill="#F44336" />
-                <circle cx="30" cy="15" r="7" fill="#FFEB3B" />
-                <path d="M15 15 Q25 5 35 15" fill="none" stroke="#FFEB3B" strokeWidth="4" />
-            </g>
-
-            <g transform="translate(80, 158) rotate(-10)">
-                <ellipse cx="15" cy="10" rx="15" ry="10" fill="#A1887F" />
-                <rect x="25" y="8" width="15" height="4" rx="2" fill="#F5F5F5" />
-            </g>
-
-            <g transform="translate(115, 160)">
-                <rect x="0" y="5" width="15" height="10" fill="#D1C4E9" />
-                <circle cx="7.5" cy="5" r="8" fill="#F06292" />
-                <circle cx="7.5" cy="0" r="3" fill="#E91E63" />
-            </g>
-
-            <g transform="translate(60, 162)">
-                <rect x="0" y="0" width="20" height="8" rx="4" fill="#D84315" />
-                <path d="M4 2 L6 6 M10 2 L12 6 M16 2 L18 6" stroke="#BF360C" strokeWidth="1" />
+            {/* Interactive Lantern */}
+            <g transform="translate(140, 130)" onClick={(e) => { e.stopPropagation(); onToggleLantern?.(); }}>
+               <rect x="5" y="40" width="30" height="40" fill="#212121" />
+               <g className={state.isLanternOn ? 'animate-glow' : ''}>
+                 <rect x="10" y="10" width="20" height="30" rx="3" fill={state.isLanternOn ? '#FFD54F' : '#333'} />
+                 <path d="M10 10 Q20 0 30 10" stroke="black" fill="none" />
+               </g>
             </g>
           </>
         ) : (
           <>
-            <rect x="0" y="0" width="200" height="240" fill="#EADBC8" />
-            {/* Comfy Armchair */}
-            <g transform="translate(30, 140)">
-                <path d="M10 0 Q70 -10 130 0 L140 100 H0 Z" fill="#795548" /> {/* Backrest */}
-                <rect x="-10" y="40" width="30" height="60" rx="10" fill="#5D4037" /> {/* Left Arm */}
-                <rect x="120" y="40" width="30" height="60" rx="10" fill="#5D4037" /> {/* Right Arm */}
-                <rect x="10" y="60" width="120" height="40" fill="#8D6E63" /> {/* Seat */}
-            </g>
-            {/* Small Table and Phone */}
-            <g transform="translate(140, 170)">
-                <rect x="0" y="0" width="50" height="10" fill="#6D4C41" /> {/* Table Top */}
-                <rect x="10" y="10" width="5" height="60" fill="#5D4037" /> {/* Leg */}
-                <rect x="35" y="10" width="5" height="60" fill="#5D4037" /> {/* Leg */}
-                
-                {/* Phone Base */}
-                <g className={state.isPhoneRinging ? 'animate-ring' : ''}>
-                    <path d="M5 -15 L45 -15 L40 -2 L10 -2 Z" fill="#B71C1C" />
-                    {!state.isHandRaised && (
-                         <path d="M5 -20 Q25 -25 45 -20 L42 -15 Q25 -18 8 -15 Z" fill="#D32F2F" /> /* Handset */
-                    )}
-                </g>
-            </g>
+            <rect x="0" y="0" width="200" height="240" fill={isV0 ? '#cccccc' : state.theme === 'christmas' ? '#8b0000' : state.theme === 'halloween' ? '#1a1a1a' : '#EADBC8'} />
+            {state.theme === 'christmas' && <text x="160" y="40" fontSize="30">🎄</text>}
+            {state.theme === 'halloween' && <text x="10" y="50" fontSize="30">🎃</text>}
+            {!isV0 && (
+              <g transform="translate(30, 140)">
+                  <path d="M10 0 Q70 -10 130 0 L140 100 H0 Z" fill="#795548" />
+                  <rect x="10" y="60" width="120" height="40" fill="#8D6E63" />
+              </g>
+            )}
+            {!isV0 && (
+              <g transform="translate(140, 170)">
+                  <rect x="0" y="0" width="50" height="10" fill="#6D4C41" />
+                  <g className={state.isPhoneRinging ? 'animate-ring' : ''}>
+                      <path d="M5 -15 L45 -15 L40 -2 L10 -2 Z" fill="#B71C1C" />
+                      {!state.isHandRaised && <path d="M5 -20 Q25 -25 45 -20 L42 -15 Q25 -18 8 -15 Z" fill="#D32F2F" />}
+                  </g>
+              </g>
+            )}
           </>
         )}
         
-        {/* Grandpa Head */}
-        <ellipse cx="100" cy="85" rx="48" ry="58" fill="#FFCCBC" />
-        
-        {/* Fluffy Hair */}
-        <g fill="#EEEEEE">
-            <circle cx="60" cy="55" r="15" />
-            <circle cx="140" cy="55" r="15" />
-            <circle cx="50" cy="70" r="12" />
-            <circle cx="150" cy="70" r="12" />
-            <ellipse cx="100" cy="40" rx="30" ry="10" />
+        {/* Grandpa Rendering */}
+        <g transform={isBedroom ? 'translate(0, 50) rotate(-5, 100, 85)' : ''}>
+          {/* Main Body */}
+          <g className="animate-breathing">
+            {state.theme === 'christmas' ? (
+                <path d="M60 140 Q100 130 140 140 L150 240 H50 Z" fill="#d32f2f" />
+            ) : state.theme === 'halloween' ? (
+                <g>
+                  <path d="M60 140 Q100 130 140 140 L150 240 H50 Z" fill="#2c3e50" />
+                  <path d="M60 140 L40 200 L60 220 Z" fill="#c0392b" /> {/* Vampire Cape */}
+                  <path d="M140 140 L160 200 L140 220 Z" fill="#c0392b" />
+                </g>
+            ) : !isV0 ? (
+                <path d="M60 140 Q100 130 140 140 L150 240 H50 Z" fill="#4E342E" />
+            ) : null}
+          </g>
+
+          {/* Head */}
+          <ellipse cx="100" cy="85" rx="48" ry="58" fill={skinColor} />
+          
+          {/* Hair - Hidden in V0 */}
+          {!isV0 && (
+            <g fill={hairColor}>
+                <circle cx="60" cy="55" r="15" />
+                <circle cx="140" cy="55" r="15" />
+                <circle cx="50" cy="70" r="12" />
+                <circle cx="150" cy="70" r="12" />
+                <ellipse cx="100" cy="40" rx="30" ry="10" />
+            </g>
+          )}
+
+          {/* Eyes Logic */}
+          {state.isSleeping || state.isBlinking ? (
+              <g stroke="#333" strokeWidth="2" fill="none">
+                  <path d="M78 75 Q85 72 92 75" />
+                  <path d="M108 75 Q115 72 122 75" />
+              </g>
+          ) : (
+              <>
+                  <circle cx={85 + eyeOffset.x} cy={75 + eyeOffset.y} r="6" fill="#333" />
+                  <circle cx={115 + eyeOffset.x} cy={75 + eyeOffset.y} r="6" fill="#333" />
+              </>
+          )}
+
+          {/* Glasses - Hidden in V0 */}
+          {!isV0 && (
+            <g opacity={state.isSleeping ? 0.2 : 1}>
+                <circle cx="85" cy="75" r="16" fill="rgba(255,255,255,0.1)" stroke="#37474F" strokeWidth="2" />
+                <circle cx="115" cy="75" r="16" fill="rgba(255,255,255,0.1)" stroke="#37474F" strokeWidth="2" />
+                <path d="M98 75 L102 75" stroke="#37474F" strokeWidth="2" />
+            </g>
+          )}
+
+          {/* Mouth */}
+          <rect x={85} y={115} width={30} height={Math.max(4, 30 * state.mouthOpen)} rx="10" fill="#4E342E" />
+
+          {/* Mustache - Hidden in V0 */}
+          {!isV0 && (
+            <g fill={hairColor} transform={`translate(0, ${state.mouthOpen * 5})`}>
+                <path d="M70 115 Q85 105 100 115 Q115 105 130 115 Q135 130 100 125 Q65 130 70 115" />
+            </g>
+          )}
+          
+          {/* Costume Extras */}
+          {state.theme === 'christmas' && (
+              <g transform="translate(60, 20) rotate(-10)">
+                  <path d="M0 25 L40 0 L80 25 Z" fill="#d32f2f" />
+                  <rect x="0" y="20" width="80" height="10" rx="5" fill="white" />
+                  <circle cx="40" cy="0" r="8" fill="white" />
+              </g>
+          )}
+          {state.theme === 'halloween' && state.mouthOpen > 0.2 && (
+              <g fill="white">
+                  <path d="M88 115 L92 115 L90 125 Z" />
+                  <path d="M108 115 L112 115 L110 125 Z" />
+              </g>
+          )}
         </g>
 
-        {/* Eyes & Tracking */}
-        {!state.isBlinking ? (
-            <>
-                <circle cx={85 + eyeOffset.x} cy={75 + eyeOffset.y} r="6" fill="#333" />
-                <circle cx={115 + eyeOffset.x} cy={75 + eyeOffset.y} r="6" fill="#333" />
-            </>
-        ) : (
-            <>
-                <path d="M78 75 Q85 72 92 75" fill="none" stroke="#333" strokeWidth="2" />
-                <path d="M108 75 Q115 72 122 75" fill="none" stroke="#333" strokeWidth="2" />
-            </>
-        )}
-
-        {/* Glasses */}
-        <g>
-            <circle cx="85" cy="75" r="16" fill="rgba(255,255,255,0.2)" stroke="#37474F" strokeWidth="2" />
-            <circle cx="115" cy="75" r="16" fill="rgba(255,255,255,0.2)" stroke="#37474F" strokeWidth="2" />
-            <path d="M98 75 L102 75" stroke="#37474F" strokeWidth="2" />
-            <path d="M69 75 L60 75" stroke="#37474F" strokeWidth="1" />
-            <path d="M131 75 L140 75" stroke="#37474F" strokeWidth="1" />
-        </g>
-
-        {/* Mouth */}
-        <rect 
-          x={100 - (15)} 
-          y={115} 
-          width={30} 
-          height={Math.max(4, 30 * state.mouthOpen)} 
-          rx="10" 
-          fill="#4E342E" 
-        />
-
-        {/* Big Bushy Mustache */}
-        <g fill="#EEEEEE" transform={`translate(0, ${state.mouthOpen * 5})`}>
-            <path d="M70 115 Q85 105 100 115 Q115 105 130 115 Q135 130 100 125 Q65 130 70 115" />
-        </g>
-        
-        {/* Cardigan */}
-        <path d="M60 140 Q100 130 140 140 L150 240 H50 Z" fill="#4E342E" className="animate-breathing" />
-
-        {/* Hand with Phone */}
-        {state.isHandRaised && (
-            <g transform="translate(130, 90)">
-                 <path d="M0 0 Q-10 -10 -20 0 L-15 15 Q-5 5 5 15 Z" fill="#FFCCBC" /> {/* Hand */}
-                 <path d="M-25 -10 Q-15 -15 -5 -10 L-8 -5 Q-15 -8 -22 -5 Z" fill="#D32F2F" transform="rotate(-30)" /> {/* Handset */}
+        {/* Dream Bubbles when sleeping */}
+        {state.isSleeping && (
+            <g className="animate-float" fill="white" opacity="0.6">
+                <circle cx="150" cy="50" r="5" />
+                <circle cx="165" cy="40" r="8" />
+                <ellipse cx="170" cy="20" rx="25" ry="15" />
+                <text x="155" y="25" fontSize="10" fill="#333" fontStyle="italic">Zzz...</text>
             </g>
         )}
       </svg>
-      
-      {isOutside && (
-        <div className="absolute top-2 left-2 animate-bounce">
-            <span className="bg-white/80 px-2 py-1 rounded-full text-xs font-bold text-green-700">HAPPY OUTSIDE!</span>
-        </div>
-      )}
-
-      {isKitchen && (
-        <div className="absolute top-2 left-2 animate-pulse">
-            <span className="bg-white/80 px-2 py-1 rounded-full text-xs font-bold text-orange-700">YUMMY FOOD!</span>
-        </div>
-      )}
-
-      {state.isPhoneRinging && (
-        <div className="absolute top-2 left-2 animate-ring">
-            <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-black shadow-lg">RING RING!</span>
-        </div>
-      )}
     </div>
   );
 };
